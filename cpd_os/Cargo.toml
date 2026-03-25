@@ -5,12 +5,7 @@ authors = ["Nathan Hinee <nathan.hingee@gmail.com>"]
 edition = "2024"
 
 [dependencies]
-
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"
+bootloader = "0.9"
 
 [[bin]]
 name = "cpd_os"
