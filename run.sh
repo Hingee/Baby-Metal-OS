@@ -3,7 +3,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OS_DIR="$SCRIPT_DIR/cpd_os"
 
 usage() {
-  echo "Usage: $0 {-iq|-i|-b|-c|-cu|-h}"
+  echo "Usage: $0 {-rq|-i|-b|-c|-cu|-h}"
   echo ""
   echo "  -rq [other_args] -- [qemu_args]   Build and run kernel in QEMU"
   echo "  -i  [other_args]                  Build a bootable image"
