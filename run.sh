@@ -3,13 +3,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OS_DIR="$SCRIPT_DIR/cpd_os"
 
 usage() {
-  echo "Usage: $0 {-rq|-i|-b|-c|-cu|-h}"
+  echo "Usage: $0 {-rq|-i|-b|-c|-h}"
   echo ""
   echo "  -rq [other_args] -- [qemu_args]   Build and run kernel in QEMU"
   echo "  -i  [other_args]                  Build a bootable image"
-  echo "  -b                                Build for x86_64 target"
+  echo "  -t                                Run a cargo test"
   echo "  -c                                Clean project"
-  echo "  -cu                               Update dependencies"
   echo "  -h                                Show this help message"
 }
 
@@ -24,10 +23,10 @@ leave_dir() {
   cd "$SCRIPT_DIR"
 }
 
-build() {
+test() {
   enter_dir "$OS_DIR"
-  cargo build || {
-    echo "cargo build failed"
+  cargo test || {
+    echo "cargo test failed"
     leave_dir
     exit 1
   }
@@ -68,16 +67,6 @@ runQEMU() {
   leave_dir
 }
 
-update() {
-  enter_dir "$OS_DIR"
-  cargo update || {
-    echo "Update failed"
-    leave_dir
-    exit 1
-  }
-  leave_dir
-}
-
 clean() {
   echo "Cleaning os..."
   enter_dir "$OS_DIR"
@@ -93,10 +82,9 @@ cmd="$1"
 shift
 case "$cmd" in
 -rq) runQEMU "$@" ;;
--i) buildImage "$@" ;;
--b) build ;;
+-b) buildImage "$@" ;;
+-t) test ;;
 -c) clean ;;
--cu) update ;;
 -h) usage ;;
 *)
   usage
