@@ -7,7 +7,7 @@ usage() {
   echo ""
   echo "  -rq [other_args] -- [qemu_args]   Build and run kernel in QEMU"
   echo "  -i  [other_args]                  Build a bootable image"
-  echo "  -t                                Run a cargo test"
+  echo "  -t  [args]                        Run a cargo test"
   echo "  -c                                Clean project"
   echo "  -h                                Show this help message"
 }
@@ -24,8 +24,9 @@ leave_dir() {
 }
 
 test() {
+  local args=("$@")
   enter_dir "$OS_DIR"
-  cargo test || {
+  cargo test "${args[@]}" || {
     echo "cargo test failed"
     leave_dir
     exit 1
