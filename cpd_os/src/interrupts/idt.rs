@@ -1,87 +1,163 @@
-use x86_64::{
-    PrivilegeLevel, VirtAddr, instructions::segmentation, registers::segmentation::Segment,
-    structures::gdt::SegmentSelector,
-};
+use crate::interrupts::stack_frame::InterruptStackFrame;
+use bitflags::bitflags;
+use core::marker::PhantomData;
+use x86_64::{VirtAddr, registers::segmentation::Segment};
 
-pub struct Idt([Entry; 16]);
+#[derive(Clone)]
+#[repr(C)]
+#[repr(align(16))]
+pub struct Idt {
+    /// The vector number of the `#DE` exception is 0.
+    pub divide_error: Entry<HandlerFunc>,
+
+    /// The vector number of the `#DB` exception is 1.
+    pub debug: Entry<HandlerFunc>,
+
+    /// The vector number of the NMI exception is 2.
+    pub non_maskable_interrupt: Entry<HandlerFunc>,
+
+    /// The vector number of the `#BP` exception is 3.
+    pub breakpoint: Entry<HandlerFunc>,
+
+    /// The vector number of the `#OF` exception is 4.
+    pub overflow: Entry<HandlerFunc>,
+
+    /// The vector number of the `#BR` exception is 5.
+    pub bound_range_exceeded: Entry<HandlerFunc>,
+
+    /// The vector number of the `#UD` exception is 6.
+    pub invalid_opcode: Entry<HandlerFunc>,
+
+    /// The vector number of the `#DF` exception is 8.
+    pub double_fault: Entry<DivergingHandlerFuncWithErrCode>,
+
+    /// The vector number of the `#PF` exception is 14.
+    pub page_fault: Entry<PageFaultHandlerFunc>,
+}
 
 impl Idt {
+    #[inline]
     pub fn new() -> Idt {
-        Idt([Entry::missing(); 16])
+        Idt {
+            divide_error: Entry::missing(),
+            debug: Entry::missing(),
+            non_maskable_interrupt: Entry::missing(),
+            breakpoint: Entry::missing(),
+            overflow: Entry::missing(),
+            bound_range_exceeded: Entry::missing(),
+            invalid_opcode: Entry::missing(),
+            double_fault: Entry::missing(),
+            page_fault: Entry::missing(),
+        }
     }
 
-    pub fn set_handler(&mut self, entry: u8, handler: HandlerFunc) -> &mut EntryOptions {
-        self.0[entry as usize] = Entry::new(segmentation::CS::get_reg(), handler);
-        &mut self.0[entry as usize].options
-    }
-
+    #[inline]
     pub fn load(&'static self) {
-        use core::mem::size_of;
-        use x86_64::instructions::tables::{DescriptorTablePointer, lidt};
+        unsafe { self.load_unsafe() }
+    }
 
-        let pointer = DescriptorTablePointer {
+    #[inline]
+    pub unsafe fn load_unsafe(&self) {
+        use x86_64::instructions::tables::lidt;
+        unsafe {
+            lidt(&self.pointer());
+        }
+    }
+
+    pub fn pointer(&self) -> x86_64::structures::DescriptorTablePointer {
+        use core::mem::size_of;
+        use x86_64::instructions::tables::DescriptorTablePointer;
+
+        DescriptorTablePointer {
             base: VirtAddr::new(self as *const _ as u64),
             limit: (size_of::<Self>() - 1) as u16,
-        };
-
-        unsafe { lidt(&pointer) };
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
-pub struct Entry {
+pub struct Entry<F> {
     pointer_low: u16,
-    gdt_selector: SegmentSelector,
+    gdt_selector: u16,
     options: EntryOptions,
     pointer_middle: u16,
     pointer_high: u32,
     reserved: u32,
+    phantom: PhantomData<F>,
 }
 
-pub type HandlerFunc = extern "x86-interrupt" fn(x86_64::structures::idt::InterruptStackFrame);
-
-impl Entry {
-    fn new(gdt_selector: SegmentSelector, handler: HandlerFunc) -> Self {
-        let pointer = handler as u64;
-        Entry {
-            gdt_selector,
-            pointer_low: pointer as u16,
-            pointer_middle: (pointer >> 16) as u16,
-            pointer_high: (pointer >> 32) as u32,
-            options: EntryOptions::new(),
-            reserved: 0,
-        }
+impl<T> PartialEq for Entry<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.pointer_low == other.pointer_low
+            && self.options == other.options
+            && self.pointer_middle == other.pointer_middle
+            && self.pointer_high == other.pointer_high
+            && self.reserved == other.reserved
     }
+}
 
-    fn missing() -> Self {
+impl<F> Entry<F> {
+    #[inline]
+    pub const fn missing() -> Self {
         Entry {
-            gdt_selector: SegmentSelector::new(0, PrivilegeLevel::Ring0),
+            gdt_selector: 0,
             pointer_low: 0,
             pointer_middle: 0,
             pointer_high: 0,
             options: EntryOptions::minimal(),
             reserved: 0,
+            phantom: PhantomData,
         }
+    }
+    #[inline]
+    fn set_handler_addr(&mut self, addr: u64) -> &mut EntryOptions {
+        use x86_64::instructions::segmentation;
+
+        self.pointer_low = addr as u16;
+        self.pointer_middle = (addr >> 16) as u16;
+        self.pointer_high = (addr >> 32) as u32;
+
+        self.gdt_selector = segmentation::CS::get_reg().0;
+
+        self.options.set_present(true);
+        &mut self.options
     }
 }
 
+pub type HandlerFunc = extern "x86-interrupt" fn(InterruptStackFrame);
+pub type HandlerFuncWithErrCode = extern "x86-interrupt" fn(InterruptStackFrame, error_code: u64);
+pub type PageFaultHandlerFunc =
+    extern "x86-interrupt" fn(InterruptStackFrame, error_code: PageFaultErrorCode);
+pub type DivergingHandlerFunc = extern "x86-interrupt" fn(InterruptStackFrame) -> !;
+pub type DivergingHandlerFuncWithErrCode =
+    extern "x86-interrupt" fn(InterruptStackFrame, error_code: u64) -> !;
+
+macro_rules! impl_set_handler {
+    ($handler:ty) => {
+        impl Entry<$handler> {
+            #[inline]
+            pub fn set_handler(&mut self, handler: $handler) -> &mut EntryOptions {
+                self.set_handler_addr(handler as u64)
+            }
+        }
+    };
+}
+
+impl_set_handler!(HandlerFunc);
+impl_set_handler!(HandlerFuncWithErrCode);
+impl_set_handler!(PageFaultHandlerFunc);
+impl_set_handler!(DivergingHandlerFunc);
+impl_set_handler!(DivergingHandlerFuncWithErrCode);
+
 use bit_field::BitField;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EntryOptions(u16);
 
 impl EntryOptions {
-    fn minimal() -> Self {
-        let mut options = 0;
-        options.set_bits(9..12, 0b111); // 'must-be-one' bits
-        EntryOptions(options)
-    }
-
-    fn new() -> Self {
-        let mut options = Self::minimal();
-        options.set_present(true).disable_interrupts(true);
-        options
+    const fn minimal() -> Self {
+        EntryOptions(0b1110_0000_0000)
     }
 
     pub fn set_present(&mut self, present: bool) -> &mut Self {
@@ -102,5 +178,16 @@ impl EntryOptions {
     pub fn set_stack_index(&mut self, index: u16) -> &mut Self {
         self.0.set_bits(0..3, index);
         self
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    pub struct PageFaultErrorCode: u64 {
+        const PROTECTION_VIOLATION = 1;
+        const CAUSED_BY_WRITE = 1 << 1;
+        const USER_MODE = 1 << 2;
+        const MALFORMED_TABLE = 1 << 3;
+        const INSTRUCTION_FETCH = 1 << 4;
     }
 }

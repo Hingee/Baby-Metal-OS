@@ -57,7 +57,7 @@ const BUFFER_WIDTH: usize = 80;
 
 #[repr(transparent)]
 struct Buffer {
-    chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
+    chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
 pub struct Writer {
@@ -79,10 +79,11 @@ impl Writer {
                 let col = self.column_position;
 
                 let color_code = self.color_code;
-                self.buffer.chars[row][col].write(ScreenChar {
+                let scrn_char = ScreenChar {
                     ascii_character: byte,
                     color_code,
-                });
+                };
+                Volatile::new(&mut self.buffer.chars[row][col]).write(scrn_char);
                 self.column_position += 1;
             }
         }
@@ -102,8 +103,8 @@ impl Writer {
     fn new_line(&mut self) {
         for row in 1..BUFFER_HEIGHT {
             for col in 0..BUFFER_WIDTH {
-                let character = self.buffer.chars[row][col].read();
-                self.buffer.chars[row - 1][col].write(character);
+                let character = Volatile::new(&self.buffer.chars[row][col]).read();
+                Volatile::new(&mut self.buffer.chars[row - 1][col]).write(character);
             }
         }
         self.clear_row(BUFFER_HEIGHT - 1);
@@ -116,7 +117,7 @@ impl Writer {
             color_code: self.color_code,
         };
         for col in 0..BUFFER_WIDTH {
-            self.buffer.chars[row][col].write(blank);
+            Volatile::new(&mut self.buffer.chars[row][col]).write(blank);
         }
     }
 }
@@ -162,7 +163,7 @@ fn test_println_output() {
     let s = "Some test string that fits on a single line";
     println!("{}", s);
     for (i, c) in s.chars().enumerate() {
-        let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i].read();
+        let screen_char = Volatile::new(&WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i]).read();
         assert_eq!(char::from(screen_char.ascii_character), c);
     }
 }

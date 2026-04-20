@@ -13,7 +13,12 @@ pub extern "C" fn _start() -> ! {
 
     cpd_os::init();
 
-    x86_64::instructions::interrupts::int3();
+    //cpd_os::interrupts::divide_by_zero();
+    //x86_64::instructions::interrupts::int3(); //breakpoint
+    //unsafe { core::arch::asm!("ud2") }; //invalid op-code
+    unsafe {
+        *(0xdeadbeef as *mut u8) = 42;
+    }; //page-fault
 
     #[cfg(test)]
     test_main();
