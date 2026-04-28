@@ -13,18 +13,11 @@ pub extern "C" fn _start() -> ! {
 
     cpd_os::init();
 
-    //cpd_os::interrupts::divide_by_zero();
-    //x86_64::instructions::interrupts::int3(); //breakpoint
-    //unsafe { core::arch::asm!("ud2") }; //invalid op-code
-    unsafe {
-        *(0xdeadbeef as *mut u8) = 42;
-    }; //page-fault
-
     #[cfg(test)]
     test_main();
 
     println!("It did not crash!");
-    loop {}
+    cpd_os::hlt_loop();
 }
 
 #[cfg(not(test))]
@@ -37,7 +30,8 @@ fn panic(info: &PanicInfo) -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    cpd_os::test_panic_handler(info)
+    cpd_os::test_panic_handler(info);
+    cpd_os::hlt_loop();
 }
 
 #[test_case]

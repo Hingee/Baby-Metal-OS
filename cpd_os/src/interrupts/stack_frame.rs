@@ -8,6 +8,7 @@ pub struct InterruptStackFrame {
 }
 
 impl InterruptStackFrame {
+    #[allow(clippy::should_implement_trait)]
     #[inline]
     pub unsafe fn as_mut(&mut self) -> Volatile<&mut InterruptStackFrameValue> {
         Volatile::new(&mut self.value)
@@ -30,14 +31,14 @@ impl fmt::Debug for InterruptStackFrame {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct InterruptStackFrameValue {
-    instruction_pointer: VirtAddr,
-    code_segment: u64,
-    cpu_flags: u64,
-    stack_pointer: VirtAddr,
-    stack_segment: u64,
+    pub instruction_pointer: VirtAddr,
+    pub code_segment: u64,
+    pub cpu_flags: u64,
+    pub stack_pointer: VirtAddr,
+    pub stack_segment: u64,
 }
 
 impl InterruptStackFrameValue {

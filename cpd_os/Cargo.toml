@@ -25,6 +25,7 @@ x86_64 = "0.14.2"
 uart_16550 = "0.2.0"
 bit_field = "0.10.1"
 bitflags = "1.0.4"
+pc-keyboard = "0.7.0"
 
 [dependencies.lazy_static]
 version = "1.0"
@@ -37,4 +38,8 @@ bench = false
 
 [[test]]
 name = "should_panic"
+harness = false
+
+[[test]]
+name = "stack_overflow"
 harness = false
