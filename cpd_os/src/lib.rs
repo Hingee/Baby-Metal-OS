@@ -7,6 +7,7 @@
 
 use core::panic::PanicInfo;
 
+pub mod gdt;
 pub mod interrupts;
 pub mod pic8259;
 pub mod serial;
@@ -19,7 +20,10 @@ pub fn hlt_loop() -> ! {
 }
 
 pub fn init() {
-    interrupts::init();
+    gdt::init();
+    interrupts::init_idt();
+    unsafe { interrupts::PICS.lock().init() };
+    x86_64::instructions::interrupts::enable();
 }
 
 pub trait Testable {
