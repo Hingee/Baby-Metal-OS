@@ -16,15 +16,15 @@ impl Pic {
     }
 
     unsafe fn end_of_interrupt(&mut self) {
-        self.cmd.write(CMD_END_OF_INTERRUPT);
+        unsafe { self.cmd.write(CMD_END_OF_INTERRUPT) };
     }
 
     unsafe fn read_mask(&mut self) -> u8 {
-        self.data.read()
+        unsafe { self.data.read() }
     }
 
     unsafe fn write_mask(&mut self, mask: u8) {
-        self.data.write(mask)
+        unsafe { self.data.write(mask) }
     }
 }
 
@@ -52,44 +52,50 @@ impl ChainedPics {
 
     pub unsafe fn init(&mut self) {
         let mut wait_port: Port<u8> = Port::new(0x80);
-        let mut wait = || wait_port.write(0);
+        unsafe {
+            let mut wait = || wait_port.write(0);
 
-        let saved_masks = self.read_masks();
+            let saved_masks = self.read_masks();
 
-        self.pics[0].cmd.write(CMD_INIT);
-        wait();
-        self.pics[1].cmd.write(CMD_INIT);
-        wait();
+            self.pics[0].cmd.write(CMD_INIT);
+            wait();
+            self.pics[1].cmd.write(CMD_INIT);
+            wait();
 
-        self.pics[0].data.write(self.pics[0].offset);
-        wait();
-        self.pics[1].data.write(self.pics[1].offset);
-        wait();
+            self.pics[0].data.write(self.pics[0].offset);
+            wait();
+            self.pics[1].data.write(self.pics[1].offset);
+            wait();
 
-        self.pics[0].data.write(4);
-        wait();
-        self.pics[1].data.write(2);
-        wait();
+            self.pics[0].data.write(4);
+            wait();
+            self.pics[1].data.write(2);
+            wait();
 
-        self.pics[0].data.write(MODE_8086);
-        wait();
-        self.pics[1].data.write(MODE_8086);
-        wait();
+            self.pics[0].data.write(MODE_8086);
+            wait();
+            self.pics[1].data.write(MODE_8086);
+            wait();
 
-        self.write_masks(saved_masks[0], saved_masks[1])
+            self.write_masks(saved_masks[0], saved_masks[1])
+        }
     }
 
     pub unsafe fn read_masks(&mut self) -> [u8; 2] {
-        [self.pics[0].read_mask(), self.pics[1].read_mask()]
+        unsafe { [self.pics[0].read_mask(), self.pics[1].read_mask()] }
     }
 
     pub unsafe fn write_masks(&mut self, mask1: u8, mask2: u8) {
-        self.pics[0].write_mask(mask1);
-        self.pics[1].write_mask(mask2);
+        unsafe {
+            self.pics[0].write_mask(mask1);
+            self.pics[1].write_mask(mask2);
+        }
     }
 
     pub unsafe fn disable(&mut self) {
-        self.write_masks(u8::MAX, u8::MAX)
+        unsafe {
+            self.write_masks(u8::MAX, u8::MAX);
+        }
     }
 
     pub fn handles_interrupt(&self, interrupt_id: u8) -> bool {
@@ -99,9 +105,9 @@ impl ChainedPics {
     pub unsafe fn notify_end_of_interrupt(&mut self, interrupt_id: u8) {
         if self.handles_interrupt(interrupt_id) {
             if self.pics[1].handles_interrupt(interrupt_id) {
-                self.pics[1].end_of_interrupt();
+                unsafe { self.pics[1].end_of_interrupt() };
             }
-            self.pics[0].end_of_interrupt();
+            unsafe { self.pics[0].end_of_interrupt() };
         }
     }
 }
