@@ -1,7 +1,7 @@
 mod idt;
 mod stack_frame;
 
-use crate::{gdt::DOUBLE_FAULT_IST_INDEX, pic8259::ChainedPics, print, println};
+use crate::{gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, pic8259::ChainedPics, print, println};
 use idt::{Idt, PageFaultErrorCode};
 use stack_frame::InterruptStackFrame;
 
@@ -70,7 +70,6 @@ handler!(breakpoint);
 handler!(invalid_op_code);
 
 extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    print!(".");
     unsafe {
         PICS.lock()
             .notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
@@ -123,12 +122,11 @@ extern "x86-interrupt" fn page_fault_handler(
 ) {
     use x86_64::registers::control::Cr2;
 
-    let accessed_address = Cr2::read();
-    println!(
-        "\nEXCEPTION: PAGE FAULT while accessing {:?}\
-        \nerror code: {:?}\n{:#?}",
-        accessed_address, error_code, stack_frame
-    );
+    println!("EXCEPTION: PAGE FAULT");
+    println!("Accessed Address: {:?}", Cr2::read());
+    println!("Error Code: {:?}", error_code);
+    println!("{:#?}", stack_frame);
+    hlt_loop();
 }
 
 #[test_case]
