@@ -5,9 +5,16 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
 
+#[cfg(test)]
+use bootloader::{BootInfo, entry_point};
 use core::panic::PanicInfo;
 
+#[cfg(test)]
+entry_point!(test_kernel_main);
+
+pub mod gdt;
 pub mod interrupts;
+pub mod memory;
 pub mod pic8259;
 pub mod serial;
 pub mod vga_buffer;
@@ -19,7 +26,10 @@ pub fn hlt_loop() -> ! {
 }
 
 pub fn init() {
-    interrupts::init();
+    gdt::init();
+    interrupts::init_idt();
+    unsafe { interrupts::PICS.lock().init() };
+    x86_64::instructions::interrupts::enable();
 }
 
 pub trait Testable {
@@ -69,8 +79,7 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 }
 
 #[cfg(test)]
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init();
     test_main();
     hlt_loop();
