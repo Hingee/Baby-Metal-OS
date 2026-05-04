@@ -84,7 +84,7 @@ shift
 case "$cmd" in
 -rq) runQEMU "$@" ;;
 -b) buildImage "$@" ;;
--t) test ;;
+-t) test "$@" ;;
 -c) clean ;;
 -h) usage ;;
 *)
