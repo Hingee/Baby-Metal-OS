@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
-#![test_runner(cpd_os::test_runner)]
+#![test_runner(baby_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
@@ -9,7 +9,7 @@ extern crate alloc;
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
 use bootloader::{BootInfo, entry_point};
 use core::panic::PanicInfo;
-use cpd_os::{
+use baby_os::{
     allocator,
     memory::{self, BootInfoFrameAllocator},
     println,
@@ -20,7 +20,7 @@ entry_point!(main);
 
 fn main(boot_info: &'static BootInfo) -> ! {
     println!("Hello World{}", "!");
-    cpd_os::init();
+    baby_os::init();
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
@@ -55,7 +55,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
     test_main();
 
     println!("It did not crash!");
-    cpd_os::hlt_loop();
+    baby_os::hlt_loop();
 }
 
 #[cfg(not(test))]
@@ -68,8 +68,8 @@ fn panic(info: &PanicInfo) -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    cpd_os::test_panic_handler(info);
-    cpd_os::hlt_loop();
+    baby_os::test_panic_handler(info);
+    baby_os::hlt_loop();
 }
 
 #[test_case]

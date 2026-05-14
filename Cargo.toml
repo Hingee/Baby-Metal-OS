@@ -1,5 +1,5 @@
 [package]
-name = "cpd_os"
+name = "baby_os"
 version = "0.1.0"
 authors = ["Nathan Hinee <nathan.hingee@gmail.com>"]
 edition = "2024"
@@ -33,7 +33,7 @@ version = "1.0"
 features = ["spin_no_std"]
 
 [[bin]]
-name = "cpd_os"
+name = "baby_os"
 test = true
 bench = false
 
