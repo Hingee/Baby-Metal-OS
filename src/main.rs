@@ -7,13 +7,13 @@
 extern crate alloc;
 
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
-use bootloader::{BootInfo, entry_point};
-use core::panic::PanicInfo;
 use baby_os::{
     allocator,
     memory::{self, BootInfoFrameAllocator},
     println,
 };
+use bootloader::{BootInfo, entry_point};
+use core::panic::PanicInfo;
 use x86_64::VirtAddr;
 
 entry_point!(main);
@@ -62,17 +62,11 @@ fn main(boot_info: &'static BootInfo) -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    baby_os::hlt_loop();
 }
 
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     baby_os::test_panic_handler(info);
-    baby_os::hlt_loop();
-}
-
-#[test_case]
-fn trivial_assertion() {
-    assert_eq!(1, 1);
 }

@@ -18,7 +18,6 @@ pub mod allocator;
 pub mod gdt;
 pub mod interrupts;
 pub mod memory;
-pub mod pic8259;
 pub mod serial;
 pub mod vga_buffer;
 
@@ -31,7 +30,9 @@ pub fn hlt_loop() -> ! {
 pub fn init() {
     gdt::init();
     interrupts::init_idt();
-    unsafe { interrupts::PICS.lock().init() };
+    unsafe {
+        interrupts::PICS.lock().initialize();
+    };
     x86_64::instructions::interrupts::enable();
 }
 

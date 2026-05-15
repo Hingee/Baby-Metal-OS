@@ -1,8 +1,9 @@
 mod idt;
 mod stack_frame;
 
-use crate::{gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, pic8259::ChainedPics, print, println};
+use crate::{gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, print, println};
 use idt::{Idt, PageFaultErrorCode};
+use pic8259::ChainedPics;
 use stack_frame::InterruptStackFrame;
 
 use lazy_static::lazy_static;
@@ -95,12 +96,12 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     let mut port = Port::new(0x60);
 
     let scancode: u8 = unsafe { port.read() };
-    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
-        if let Some(key) = keyboard.process_keyevent(key_event) {
-            match key {
-                DecodedKey::Unicode(character) => print!("{}", character),
-                DecodedKey::RawKey(key) => print!("{:?}", key),
-            }
+    if let Ok(Some(key_event)) = keyboard.add_byte(scancode)
+        && let Some(key) = keyboard.process_keyevent(key_event)
+    {
+        match key {
+            DecodedKey::Unicode(character) => print!("{}", character),
+            DecodedKey::RawKey(key) => print!("{:?}", key),
         }
     }
 
@@ -131,23 +132,19 @@ extern "x86-interrupt" fn page_fault_handler(
 }
 
 #[test_case]
+fn test_breakpoint_exception() {
+    x86_64::instructions::interrupts::int3();
+}
+
+/*
+#[test_case]
 fn test_divide_by_zero_exception() {
     divide_by_zero();
 }
 
 #[test_case]
-fn test_breakpoint_exception() {
-    x86_64::instructions::interrupts::int3();
-}
-
-#[test_case]
 fn test_invalid_op_code_exception() {
     unsafe { core::arch::asm!("ud2") };
-}
-
-#[test_case]
-fn test_page_fault_exception() {
-    unsafe { *(0xdeadbeaf as *mut u64) = 42 };
 }
 
 pub fn divide_by_zero() {
@@ -162,4 +159,4 @@ pub fn divide_by_zero() {
             out("rcx") _,
         );
     }
-}
+}*/

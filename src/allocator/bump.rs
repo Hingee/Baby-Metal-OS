@@ -48,9 +48,19 @@ impl BumpAllocator {
         }
     }
 
+    /// # Safety
+    ///
+    /// This method is unsafe because the caller must ensure that the given
+    /// memory range is unused. Also, this method must be called only once.
     pub unsafe fn init(&mut self, heap_start: usize, heap_size: usize) {
         self.heap_start = heap_start;
         self.heap_end = heap_start + heap_size;
         self.next = heap_start;
+    }
+}
+
+impl Default for BumpAllocator {
+    fn default() -> Self {
+        Self::new()
     }
 }

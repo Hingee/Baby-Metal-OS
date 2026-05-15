@@ -70,6 +70,11 @@ impl FixedSizeBlockAllocator {
         }
     }
 
+    /// # Safety
+    ///
+    /// This function is unsafe because the caller must guarantee that the given
+    /// heap bounds are valid and that the heap is unused. This method must be
+    /// called only once.
     pub unsafe fn init(&mut self, heap_start: usize, heap_size: usize) {
         unsafe {
             self.fallback_allocator.init(heap_start, heap_size);
@@ -81,6 +86,12 @@ impl FixedSizeBlockAllocator {
             Ok(ptr) => ptr.as_ptr(),
             Err(_) => ptr::null_mut(),
         }
+    }
+}
+
+impl Default for FixedSizeBlockAllocator {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
