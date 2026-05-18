@@ -5,6 +5,31 @@ use x86_64::{
     structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
 };
 
+pub mod stack;
+
+/// # Safety
+///
+/// This function is unsafe because the caller must guarantee that the
+/// complete physical memory is mapped to virtual memory at the passed
+/// `physical_memory_offset`. Also, this function must be only called once
+/// to avoid aliasing `&mut` references (which is undefined behavior)
+pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
+    unsafe {
+        let level_4_table = active_lvl_4_table(physical_memory_offset);
+        OffsetPageTable::new(level_4_table, physical_memory_offset)
+    }
+}
+
+unsafe fn active_lvl_4_table(physical_mem_offset: VirtAddr) -> &'static mut PageTable {
+    let (lvl_4_table_frame, _) = Cr3::read();
+
+    let phys = lvl_4_table_frame.start_address();
+    let virt = physical_mem_offset + phys.as_u64();
+    let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
+
+    unsafe { &mut *page_table_ptr }
+}
+
 pub struct BootInfoFrameAllocator {
     memory_map: &'static MemoryMap,
     next: usize,
@@ -38,29 +63,6 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
         self.next += 1;
         frame
     }
-}
-
-/// # Safety
-///
-/// This function is unsafe because the caller must guarantee that the
-/// complete physical memory is mapped to virtual memory at the passed
-/// `physical_memory_offset`. Also, this function must be only called once
-/// to avoid aliasing `&mut` references (which is undefined behavior)
-pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
-    unsafe {
-        let level_4_table = active_lvl_4_table(physical_memory_offset);
-        OffsetPageTable::new(level_4_table, physical_memory_offset)
-    }
-}
-
-unsafe fn active_lvl_4_table(physical_mem_offset: VirtAddr) -> &'static mut PageTable {
-    let (lvl_4_table_frame, _) = Cr3::read();
-
-    let phys = lvl_4_table_frame.start_address();
-    let virt = physical_mem_offset + phys.as_u64();
-    let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
-
-    unsafe { &mut *page_table_ptr }
 }
 
 pub struct EmptyFrameAllocator;

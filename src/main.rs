@@ -9,8 +9,8 @@ extern crate alloc;
 use baby_os::{
     allocator,
     memory::{self, BootInfoFrameAllocator},
+    multitasking::{Task, executor::Executor, keyboard},
     println,
-    task::{Task, executor::Executor, keyboard},
 };
 use bootloader::{BootInfo, entry_point};
 use core::panic::PanicInfo;
