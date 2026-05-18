@@ -1,5 +1,5 @@
 [package]
-name = "cpd_os"
+name = "baby_os"
 version = "0.1.0"
 authors = ["Nathan Hinee <nathan.hingee@gmail.com>"]
 edition = "2024"
@@ -22,6 +22,7 @@ bootloader = { version = "0.9", features = ["map_physical_memory"] }
 volatile = "0.4.4"
 spin = "0.5.2"
 x86_64 = "0.14.2"
+pic8259 = "0.10.1"
 uart_16550 = "0.2.0"
 bit_field = "0.10.1"
 bitflags = "1.0.4"
@@ -32,8 +33,22 @@ linked_list_allocator = "0.9.0"
 version = "1.0"
 features = ["spin_no_std"]
 
+[dependencies.crossbeam-queue]
+version = "0.3.11"
+default-features = false
+features = ["alloc"]
+
+[dependencies.conquer-once]
+version = "0.2.0"
+default-features = false
+
+[dependencies.futures-util]
+version = "0.3.4"
+default-features = false
+features = ["alloc"]
+
 [[bin]]
-name = "cpd_os"
+name = "baby_os"
 test = true
 bench = false
 

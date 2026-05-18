@@ -211,7 +211,7 @@ impl<F> Entry<F> {
         }
     }
     #[inline]
-    fn set_handler_addr(&mut self, addr: u64) -> &mut EntryOptions {
+    fn set_handler_addr(&mut self, addr: usize) -> &mut EntryOptions {
         use x86_64::instructions::segmentation;
 
         self.pointer_low = addr as u16;
@@ -238,17 +238,17 @@ macro_rules! impl_set_handler {
         impl Entry<$handler> {
             #[inline]
             pub fn set_handler(&mut self, handler: $handler) -> &mut EntryOptions {
-                self.set_handler_addr(handler as u64)
+                self.set_handler_addr(handler as usize)
             }
         }
     };
 }
 
 impl_set_handler!(HandlerFunc);
-impl_set_handler!(HandlerFuncWithErrCode);
 impl_set_handler!(PageFaultHandlerFunc);
-impl_set_handler!(DivergingHandlerFunc);
 impl_set_handler!(DivergingHandlerFuncWithErrCode);
+impl_set_handler!(DivergingHandlerFunc);
+impl_set_handler!(HandlerFuncWithErrCode);
 
 use bit_field::BitField;
 

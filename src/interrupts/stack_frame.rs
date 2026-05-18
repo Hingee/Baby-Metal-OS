@@ -8,7 +8,6 @@ pub struct InterruptStackFrame {
 }
 
 impl InterruptStackFrame {
-    #[allow(clippy::should_implement_trait)]
     #[inline]
     pub unsafe fn as_mut(&mut self) -> Volatile<&mut InterruptStackFrameValue> {
         Volatile::new(&mut self.value)

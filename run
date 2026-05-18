@@ -1,6 +1,6 @@
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-OS_DIR="$SCRIPT_DIR/cpd_os"
+OS_DIR="$SCRIPT_DIR"
 
 usage() {
   echo "Usage: $0 {-rq|-i|-b|-c|-h}"

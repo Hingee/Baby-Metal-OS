@@ -2,7 +2,7 @@
 #![no_main]
 
 use core::panic::PanicInfo;
-use cpd_os::{QemuExitCode, exit_qemu, serial_print, serial_println};
+use baby_os::{QemuExitCode, exit_qemu, serial_print, serial_println};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
