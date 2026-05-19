@@ -28,6 +28,12 @@ pub struct ScancodeStream {
     _priv: (),
 }
 
+pub fn init() {
+    SCANCODE_QUEUE
+        .try_init_once(|| ArrayQueue::new(QUEUE_MAX))
+        .expect("keyboard::init should only be called once");
+}
+
 impl ScancodeStream {
     pub fn new() -> Self {
         SCANCODE_QUEUE

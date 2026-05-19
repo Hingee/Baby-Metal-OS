@@ -95,3 +95,15 @@ fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
 fn panic(info: &PanicInfo) -> ! {
     test_panic_handler(info)
 }
+
+//For Heap Debugging
+#[macro_export]
+macro_rules! heap_probe {
+    ($tag:expr) => {
+        let (used, free) = {
+            let a = $crate::allocator::ALLOCATOR.lock();
+            (a.fallback_allocator.used(), a.fallback_allocator.free())
+        };
+        println!("[heap {}] used={} free={}", $tag, used, free);
+    };
+}

@@ -1,5 +1,4 @@
 use core::{fmt, ops::Deref};
-use volatile::Volatile;
 use x86_64::VirtAddr;
 
 #[repr(C)]
@@ -7,12 +6,12 @@ pub struct InterruptStackFrame {
     value: InterruptStackFrameValue,
 }
 
-impl InterruptStackFrame {
+/*impl InterruptStackFrame {
     #[inline]
-    pub unsafe fn as_mut(&mut self) -> Volatile<&mut InterruptStackFrameValue> {
-        Volatile::new(&mut self.value)
+    pub unsafe fn as_mut(&mut self) -> volatile::Volatile<&mut InterruptStackFrameValue> {
+        volatile::Volatile::new(&mut self.value)
     }
-}
+}*/
 
 impl Deref for InterruptStackFrame {
     type Target = InterruptStackFrameValue;
@@ -40,7 +39,7 @@ pub struct InterruptStackFrameValue {
     pub stack_segment: u64,
 }
 
-impl InterruptStackFrameValue {
+/*impl InterruptStackFrameValue {
     #[inline(always)]
     pub unsafe fn iretq(&self) -> ! {
         unsafe {
@@ -60,7 +59,7 @@ impl InterruptStackFrameValue {
             )
         }
     }
-}
+}*/
 
 impl fmt::Debug for InterruptStackFrameValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

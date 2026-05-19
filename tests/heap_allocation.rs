@@ -7,13 +7,13 @@
 extern crate alloc;
 
 use alloc::{boxed::Box, vec::Vec};
-use bootloader::{BootInfo, entry_point};
-use core::panic::PanicInfo;
 use baby_os::{
     allocator,
     allocator::HEAP_SIZE,
     memory::{self, BootInfoFrameAllocator},
 };
+use bootloader::{BootInfo, entry_point};
+use core::panic::PanicInfo;
 use x86_64::VirtAddr;
 
 entry_point!(main);
@@ -62,6 +62,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
     test_main();
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

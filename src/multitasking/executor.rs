@@ -1,4 +1,4 @@
-use super::{Id, QUEUE_MAX, Task};
+use super::{Id, QUEUE_MAX, task::Task};
 use alloc::{collections::BTreeMap, sync::Arc, task::Wake};
 use core::task::{Context, Poll, Waker};
 use crossbeam_queue::ArrayQueue;
@@ -20,21 +20,21 @@ impl Executor {
     }
 
     pub fn spawn(&mut self, task: Task) {
-        let task_id = task.id;
+        let task_id = task.id();
         if self.tasks.insert(task_id, task).is_some() {
             panic!("Task with same ID already in tasks")
         }
         self.task_queue.push(task_id).expect("queue full");
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> ! {
         loop {
             self.run_ready_tasks();
             self.sleep_if_idle();
         }
     }
 
-    fn run_ready_tasks(&mut self) {
+    pub fn run_ready_tasks(&mut self) {
         while let Some(task_id) = self.task_queue.pop() {
             let task = match self.tasks.get_mut(&task_id) {
                 Some(task) => task,
@@ -62,6 +62,10 @@ impl Executor {
         } else {
             interrupts::enable();
         }
+    }
+
+    pub fn is_idle(&self) -> bool {
+        self.task_queue.is_empty()
     }
 }
 

@@ -4,13 +4,14 @@
 #![test_runner(baby_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-use core::panic::PanicInfo;
 use baby_os::println;
+use core::panic::PanicInfo;
 
 #[unsafe(no_mangle)] // don't mangle the name of this function
 pub extern "C" fn _start() -> ! {
     test_main();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

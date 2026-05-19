@@ -2,7 +2,9 @@ use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use x86_64::{
     PhysAddr, VirtAddr,
     registers::control::Cr3,
-    structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
+    structures::paging::{
+        FrameAllocator, FrameDeallocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB,
+    },
 };
 
 pub mod stack;
@@ -30,6 +32,7 @@ unsafe fn active_lvl_4_table(physical_mem_offset: VirtAddr) -> &'static mut Page
     unsafe { &mut *page_table_ptr }
 }
 
+// TODO: I need to change to bitmap allocator to free the stack again
 pub struct BootInfoFrameAllocator {
     memory_map: &'static MemoryMap,
     next: usize,
@@ -62,6 +65,13 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
         let frame = self.usable_frames().nth(self.next);
         self.next += 1;
         frame
+    }
+}
+
+// TODO: I need to change to bitmap allocator to free the stack again
+impl FrameDeallocator<Size4KiB> for BootInfoFrameAllocator {
+    unsafe fn deallocate_frame(&mut self, _frame: PhysFrame<Size4KiB>) {
+        todo!()
     }
 }
 

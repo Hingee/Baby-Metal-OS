@@ -1,58 +1,71 @@
-use crate::memory::stack::StackBounds;
-use alloc::boxed::Box;
-use core::{
-    future::Future,
-    pin::Pin,
-    sync::atomic::{AtomicU64, Ordering},
-    task::{Context, Poll},
-};
-use x86_64::VirtAddr;
+use core::sync::atomic::{AtomicU64, Ordering};
+use scheduler::Scheduler;
+use spin::Mutex;
 
-pub mod context_swtich;
+pub mod context_switch;
 pub mod executor;
 pub mod keyboard;
+pub mod scheduler;
+pub mod task;
+pub mod thread;
 
 const QUEUE_MAX: usize = 100;
 
+#[repr(transparent)]
 #[derive(Ord, Eq, PartialEq, PartialOrd, Clone, Copy, Debug)]
-struct Id(u64);
+pub struct Id(u64);
 
 impl Id {
-    fn new(counter: AtomicU64, ordering_type: Ordering) -> Self {
-        Id(counter.fetch_add(1, ordering_type))
+    pub fn as_u64(&self) -> u64 {
+        self.0
+    }
+
+    fn new(ordering_type: Ordering) -> Self {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(1);
+        Id(NEXT_ID.fetch_add(1, ordering_type))
     }
 }
 
-pub struct Task {
-    id: Id,
-    future: Pin<Box<dyn Future<Output = ()>>>,
+static SCHEDULER: Mutex<Option<Scheduler>> = spin::Mutex::new(None);
+
+pub fn invoke_scheduler() {
+    let next = SCHEDULER
+        .try_lock()
+        .and_then(|mut scheduler| scheduler.as_mut().and_then(|s| s.schedule()));
+    if let Some((next_stack_pointer, prev_thread_id)) = next {
+        unsafe {
+            context_switch::context_switch_to(
+                next_stack_pointer,
+                prev_thread_id,
+                context_switch::SwitchReason::Paused,
+            )
+        };
+    }
 }
 
-impl Task {
-    pub fn new(future: impl Future<Output = ()> + 'static) -> Task {
-        Task {
-            id: Id::new(AtomicU64::new(1), Ordering::Relaxed),
-            future: Box::pin(future),
-        }
-    }
+pub fn exit_thread() -> ! {
+    synchronous_context_switch(context_switch::SwitchReason::Exit).expect("can't exit last thread");
+    unreachable!("finished thread continued");
+}
 
-    fn poll(&mut self, context: &mut Context) -> Poll<()> {
-        self.future.as_mut().poll(context)
+pub fn yield_now() {
+    let _ = synchronous_context_switch(context_switch::SwitchReason::Yield);
+}
+
+fn synchronous_context_switch(reason: context_switch::SwitchReason) -> Result<(), ()> {
+    let next = with_scheduler(|s| s.schedule());
+    match next {
+        Some((next_stack_pointer, prev_thread_id)) => unsafe {
+            context_switch::context_switch_to(next_stack_pointer, prev_thread_id, reason);
+            Ok(())
+        },
+        None => Err(()),
     }
 }
 
-pub struct Thread {
-    id: Id,
-    stack_pointer: Option<VirtAddr>,
-    stack_bounds: Option<StackBounds>,
-}
-
-impl Thread {
-    pub fn new(stack_pointer: VirtAddr, stack_bounds: StackBounds) -> Thread {
-        Thread {
-            id: Id::new(AtomicU64::new(1), Ordering::SeqCst),
-            stack_pointer: Some(stack_pointer),
-            stack_bounds: Some(stack_bounds),
-        }
-    }
+pub fn with_scheduler<F, T>(f: F) -> T
+where
+    F: FnOnce(&mut Scheduler) -> T,
+{
+    f(SCHEDULER.lock().get_or_insert_with(Scheduler::new))
 }

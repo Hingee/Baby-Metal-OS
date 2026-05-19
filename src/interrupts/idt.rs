@@ -5,7 +5,7 @@ use core::{
     marker::PhantomData,
     ops::{Index, IndexMut},
 };
-use x86_64::{PrivilegeLevel, VirtAddr, registers::segmentation::Segment};
+use x86_64::{VirtAddr, registers::segmentation::Segment};
 
 #[derive(Clone)]
 #[repr(C)]
@@ -70,10 +70,10 @@ impl Idt {
         }
     }
 
-    #[inline]
+    /*#[inline]
     pub fn reset(&mut self) {
         *self = Self::new();
-    }
+    }*/
 
     #[inline]
     pub fn load(&'static self) {
@@ -247,8 +247,8 @@ macro_rules! impl_set_handler {
 impl_set_handler!(HandlerFunc);
 impl_set_handler!(PageFaultHandlerFunc);
 impl_set_handler!(DivergingHandlerFuncWithErrCode);
-impl_set_handler!(DivergingHandlerFunc);
-impl_set_handler!(HandlerFuncWithErrCode);
+//impl_set_handler!(DivergingHandlerFunc);
+//impl_set_handler!(HandlerFuncWithErrCode);
 
 use bit_field::BitField;
 
@@ -268,17 +268,17 @@ impl EntryOptions {
         self
     }
 
-    #[inline]
+    /*#[inline]
     pub fn disable_interrupts(&mut self, disable: bool) -> &mut Self {
         self.0.set_bit(8, !disable);
         self
     }
 
     #[inline]
-    pub fn set_privilege_level(&mut self, dpl: PrivilegeLevel) -> &mut Self {
+    pub fn set_privilege_level(&mut self, dpl: x86_64::PrivilegeLevel) -> &mut Self {
         self.0.set_bits(13..15, dpl as u16);
         self
-    }
+    }*/
 
     #[inline]
     pub unsafe fn set_stack_index(&mut self, index: u16) -> &mut Self {

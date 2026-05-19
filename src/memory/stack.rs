@@ -5,7 +5,7 @@ use core::{
     mem,
     sync::atomic::{AtomicU64, Ordering},
 };
-use x86_64::structures::paging::{Mapper, Page, PageTableFlags, mapper};
+use x86_64::structures::paging::{FrameDeallocator, Mapper, Page, PageTableFlags, mapper};
 
 pub fn alloc_stack(
     size_in_pages: u64,
@@ -38,6 +38,24 @@ pub fn alloc_stack(
     })
 }
 
+pub fn dealloc_stack(
+    bounds: &StackBounds,
+    mapper: &mut impl Mapper<Size4KiB>,
+    frame_deallocator: &mut impl FrameDeallocator<Size4KiB>,
+) {
+    let stack_start =
+        Page::<Size4KiB>::from_start_address(bounds.start()).expect("stack start not page aligned");
+    let stack_end =
+        Page::<Size4KiB>::from_start_address(bounds.end()).expect("stack end not page aligned");
+
+    for page in Page::range(stack_start, stack_end) {
+        let (frame, flush) = mapper.unmap(page).expect("failed to unmap stack page");
+        flush.flush();
+        // Safety: frame was exclusively owned by this stack
+        unsafe { frame_deallocator.deallocate_frame(frame) };
+    }
+}
+
 pub struct Stack {
     ptr: VirtAddr,
 }
@@ -61,14 +79,12 @@ impl Stack {
 
         unsafe { self.push(data) };
         unsafe { self.push(vtable) };
-
         self.set_up_for_entry_point(call_closure_entry);
     }
 
-    pub fn set_up_for_entry_point(&mut self, entry_point: extern "C" fn() -> ()) {
+    pub fn set_up_for_entry_point(&mut self, entry_point: extern "C" fn() -> !) {
         unsafe { self.push(entry_point) };
-        let rflags: u64 = 0x200;
-        unsafe { self.push(rflags) };
+        unsafe { self.push(0x200u64) };
     }
 
     unsafe fn push<T>(&mut self, value: T) {
@@ -79,7 +95,7 @@ impl Stack {
 }
 
 #[unsafe(naked)]
-extern "C" fn call_closure_entry() {
+extern "C" fn call_closure_entry() -> ! {
     naked_asm!(
         "pop rsi", //
         "pop rdi", //

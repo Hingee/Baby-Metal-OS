@@ -2,8 +2,8 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 
-use core::panic::PanicInfo;
 use baby_os::{QemuExitCode, exit_qemu, serial_print, serial_println};
+use core::panic::PanicInfo;
 use lazy_static::lazy_static;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
@@ -22,6 +22,7 @@ pub extern "C" fn _start() -> ! {
 
 #[allow(unconditional_recursion)]
 fn stack_overflow() {
+    #[allow(clippy::unit_arg)]
     core::hint::black_box(stack_overflow());
 }
 
@@ -48,6 +49,7 @@ extern "x86-interrupt" fn test_double_fault_handler(
 ) -> ! {
     serial_println!("[ok]");
     exit_qemu(QemuExitCode::Success);
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
