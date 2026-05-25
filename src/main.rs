@@ -10,8 +10,8 @@ use baby_os::{
     allocator,
     memory::{self, BootInfoFrameAllocator},
     multitasking,
-    multitasking::{executor::Executor, keyboard, task::Task, with_scheduler},
-    print, println,
+    multitasking::with_scheduler,
+    println,
 };
 use bootloader::{BootInfo, entry_point};
 use core::panic::PanicInfo;
@@ -32,12 +32,14 @@ fn main(boot_info: &'static BootInfo) -> ! {
     #[cfg(test)]
     test_main();
 
-    let mut executor = Executor::new();
-    executor.spawn(Task::new(example_task()));
-    executor.spawn(Task::new(keyboard::print_keypresses()));
-    executor.run();
+    /*
+        let mut executor = Executor::new();
+        executor.spawn(Task::new(example_task()));
+        executor.spawn(Task::new(keyboard::print_keypresses()));
+        executor.run();
+    */
 
-    /*let idle_thread =
+    let idle_thread =
         multitasking::thread::Thread::create(idle_thread, 2, &mut mapper, &mut frame_allocator)
             .unwrap();
     with_scheduler(|s| {
@@ -45,7 +47,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
             .expect("failed to set idle thread")
     });
 
-    for _ in 0..10 {
+    for _ in 0..3 {
         let thread = multitasking::thread::Thread::create(
             thread_entry,
             2,
@@ -69,7 +71,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
     });
 
     println!("It did not crash!");
-    thread_entry();*/
+    thread_entry();
 }
 
 #[allow(dead_code)]
@@ -94,10 +96,12 @@ extern "C" fn idle_thread() -> ! {
 #[allow(dead_code)]
 extern "C" fn thread_entry() -> ! {
     let thread_id = with_scheduler(|s| s.current_thread_id()).as_u64();
-    for _ in 0..=thread_id {
-        print!("{}", thread_id);
+    println!("Thread {} started", thread_id);
+    for i in 0..2 {
         x86_64::instructions::hlt();
+        println!("  Thread {} | tick {}/2", thread_id, i + 1);
     }
+    println!("Thread {} exiting", thread_id);
     multitasking::exit_thread();
 }
 
