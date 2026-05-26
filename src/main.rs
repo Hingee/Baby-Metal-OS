@@ -10,7 +10,7 @@ use baby_os::{
     allocator,
     memory::{self, BootInfoFrameAllocator},
     multitasking,
-    multitasking::with_scheduler,
+    multitasking::{executor::Executor, keyboard, task::Task, with_scheduler},
     println,
 };
 use bootloader::{BootInfo, entry_point};
@@ -31,13 +31,6 @@ fn main(boot_info: &'static BootInfo) -> ! {
 
     #[cfg(test)]
     test_main();
-
-    /*
-        let mut executor = Executor::new();
-        executor.spawn(Task::new(example_task()));
-        executor.spawn(Task::new(keyboard::print_keypresses()));
-        executor.run();
-    */
 
     let idle_thread =
         multitasking::thread::Thread::create(idle_thread, 2, &mut mapper, &mut frame_allocator)
@@ -87,10 +80,10 @@ async fn example_task() {
 
 #[allow(dead_code)]
 extern "C" fn idle_thread() -> ! {
-    loop {
-        x86_64::instructions::hlt();
-        multitasking::yield_now();
-    }
+    let mut executor = Executor::new();
+    executor.spawn(Task::new(example_task()));
+    executor.spawn(Task::new(keyboard::print_keypresses()));
+    executor.run();
 }
 
 #[allow(dead_code)]

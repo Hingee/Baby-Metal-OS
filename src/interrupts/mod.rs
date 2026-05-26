@@ -129,28 +129,3 @@ extern "x86-interrupt" fn page_fault_handler(
 fn test_breakpoint_exception() {
     x86_64::instructions::interrupts::int3();
 }
-
-/*
-#[test_case]
-fn test_divide_by_zero_exception() {
-    divide_by_zero();
-}
-
-#[test_case]
-fn test_invalid_op_code_exception() {
-    unsafe { core::arch::asm!("ud2") };
-}
-
-pub fn divide_by_zero() {
-    unsafe {
-        core::arch::asm!(
-            "xor rdx, rdx",
-            "mov rax, 1",
-            "mov rcx, 0",
-            "div rcx",
-            out("rax") _,
-            out("rdx") _,
-            out("rcx") _,
-        );
-    }
-}*/
